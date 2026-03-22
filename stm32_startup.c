@@ -5,6 +5,15 @@
 #define SRAM_RAM_END	  ((SRAM_RAM_START) + (SRAM_SIZE) )	// points to sram end
 
 #define STACK_START 	   SRAM_RAM_END
+
+extern uint32_t _etext;
+extern uint32_t _sdata;
+extern uint32_t _edata;
+extern uint32_t _sbss;
+extern uint32_t _ebss;
+
+int main( void );
+
 // system exceptions
 void Reset_Handler(void);
 void NMI_Handler(void)                  __attribute__ ((weak, alias("Default_Handler")));
@@ -107,7 +116,7 @@ void FMPI2C1_ER_IRQHandler(void)        __attribute__ ((weak, alias("Default_Han
 
 uint32_t vectors[] __attribute__((section(".isr_vector"))) = {
     // --- Core Cortex-M4 Exceptions ---
-    ((uint32_t)&_estack),                           // 0x0000 0000 - Initial Stack Pointer
+	STACK_START,                           // 0x0000 0000 - Initial Stack Pointer
     ((uint32_t)&Reset_Handler),                     // 0x0000 0004 - Reset
     ((uint32_t)&NMI_Handler),                       // 0x0000 0008 - NMI
     ((uint32_t)&HardFault_Handler),                 // 0x0000 000C - HardFault
@@ -229,11 +238,25 @@ void Default_Handler(void)
 
 }
 
-void reset_handler(void)
+void Reset_Handler(void)
 {
-// initialize the .data and .bss section and move it to SRAM	
+// copy the .data and move it to SRAM	
+uint32_t size = &_edata - &_sdata; //
+uint8_t *pDst = (uint8_t *)&_sdata; /* This is the memory location of start of SRAM ( REMEMBER: THE (.) tracks only vma so _sdata contains the MEM_location of SRAM ) which is actually not populated with .data */
+uint8_t *pSrc = (uint8_t *)&_etext; // this is clearly in FLASH
 
+for (uint32_t i =0; i <size; i++) {
+	*pDst++ = *pSrc++;
+}
+// copy the .bss from flash to sram
+size = &_ebss - &_sbss;
+pSrc = (uint8_t *)&_sbss;
+
+for (uint32_t i =0; i <size; i++) {
+	*pSrc++ = 0;
+}
 //initialize the std lib ( if we would i.e )
 
 // call the main() function
+main();
 }
