@@ -1,3 +1,4 @@
+
 #include <stdint.h>
 #include <stdio.h>
 #include "main.h"
@@ -14,6 +15,7 @@ __attribute ((naked)) void schdule_stack(uint32_t pScheduler_stack_top);
 void enable_processor_faults();
 __attribute ((naked)) void switch_sp_to_psp();
 void task_delay(uint32_t task_tick);
+extern void initialise_monitor_handles(void);
 
 
 //global variables
@@ -42,8 +44,9 @@ TCB_t user_task[MAX_TASKS];
 int main(void)
 {
 	// 1. Move the OS Stack out of the way (You fixed this!)
-		schdule_stack(SCHED_STACK_START);
+		
 		enable_processor_faults();
+		initialise_monitor_handles();
 
 #ifdef OLD_CODE
 		// 2. Setup task pointers
@@ -54,6 +57,7 @@ int main(void)
 
 #endif
 
+		schdule_stack(SCHED_STACK_START);
 		// 3. Initialize Memory (Must happen BEFORE switching to PSP!)
 		user_tasks_init();
 		led_init_all();
@@ -74,13 +78,14 @@ int main(void)
 void idle_handler(){
 
 	while(1){
-		// // printf("idle task is running! \n");
+		printf("idle task is running! \n");
 	}
 }
 
 void task1_handler (void)
 {
 	while(1){
+		printf("This is task 1 handler \n");
 		led_on(LED_GREEN);
 		task_delay(1000);
 		led_off(LED_GREEN);
@@ -90,6 +95,7 @@ void task1_handler (void)
 void task2_handler (void)
 {
 	while(1){
+		printf("This is task 2 handler \n");
 		led_on(LED_ORANGE);
 		task_delay(500);
 		led_off(LED_ORANGE);
@@ -100,6 +106,7 @@ void task2_handler (void)
 void task3_handler (void)
 {
 	while(1){
+		printf("This is task 3 handler \n");
 		led_on(LED_RED);
 		task_delay(250);
 		led_off(LED_RED);
@@ -110,7 +117,7 @@ void task3_handler (void)
 void task4_handler (void)
 {
 	while(1){
-
+		printf("This is task 4 handler \n");
 		led_on(LED_BLUE);
 		task_delay(125);
 		led_off(LED_BLUE);
@@ -141,6 +148,7 @@ void init_systick_timer(uint32_t tick_hz){
 
 __attribute ((naked)) void schdule_stack(uint32_t pScheduler_stack_top){
 
+	printf("This is implemention of task scheduler \n");
 	__asm volatile("MSR MSP,%0" : : "r"(pScheduler_stack_top)); // takes c variable and put it into a Reg -> MSP (pointing the msp to scheduler's top of stack)
 	__asm volatile ("BX LR"); // exit to main
 
@@ -333,15 +341,20 @@ void enable_processor_faults(){
 
 
 void HardFault_Handler(void) {
-	// printf("This is Hard_fault exception! \n");
+	printf("This is Hard_fault exception! \n");
 	while(1);
 }
 void MemManage_Handler (void){
-	// printf("This is Memory_fault exception! \n");
+	printf("This is Memory_fault exception! \n");
 		while(1);
 }
 void BusFault_Handler(void) {
-	// printf("This is Bus_fault exception! \n");
+	volatile uint32_t *const pCFSR = (uint32_t*)0xE000ED28; // read only`
+	volatile uint32_t *const pBFAR = (uint32_t*)0xE000ED38; // read only
+	
+	uint32_t BF_type = ((*pCFSR & ~(0xFFFF00FF)) >> 8 ); // capturing only the bfsr bits to know the kind of bus fault occured 
+	printf("This is Bus_fault exception! of type 0x%lx \n", BF_type);
+	printf(" The error is at address = 0x%lX \n", *pBFAR);  
 		while(1);
 }
 
@@ -353,20 +366,20 @@ __attribute__ ((naked)) void UsageFault_Handler(void){
 }
 void UsageFault_Handler_c(uint32_t *pBaseStackFrame) {
 
-	//  uint32_t *pUFSR = (uint32_t*)0xE000ED2A; // UFSR register pointer
-	// printf("This is Usage_fault exception! \n");
+	uint32_t *pUFSR = (uint32_t*)0xE000ED2A; // UFSR register pointer
+	printf("This is Usage_fault exception! \n");
 	// flush(stdout);
-	// printf(" %lx value of UFSR \n", (*pUFSR) & 0xFFFF );
+	printf(" %lx value of UFSR \n", (*pUFSR & 0xFFFF) );
 	// flush(stdout);
-	// printf("The value of MSP[0] is: %lx \n", pBaseStackFrame[0]);
+	printf("The value of MSP[0] is: %lx \n", pBaseStackFrame[0]);
 	// flush(stdout);
-	// printf("The value of MSP[1]  r1 is: %lx \n", pBaseStackFrame[1]);
-	// printf("The value of MSP[2]  r2 is: %lx \n", pBaseStackFrame[2]);
-	// printf("The value of MSP[3]  r3 is: %lx \n", pBaseStackFrame[3]);
-	// printf("The value of MSP[4] r12 is: %lx \n", pBaseStackFrame[4]);
-	// printf("The value of MSP[5]  lr is: %lx \n", pBaseStackFrame[5]);
-	// printf("The value of MSP[6]  PC is: %lx \n", pBaseStackFrame[6]);
-	// printf("The value of MSP[6]  xPSR is: %lx \n", pBaseStackFrame[7]);
+	printf("The value of MSP[1]  r1 is: %lx \n", pBaseStackFrame[1]);
+	printf("The value of MSP[2]  r2 is: %lx \n", pBaseStackFrame[2]);
+	printf("The value of MSP[3]  r3 is: %lx \n", pBaseStackFrame[3]);
+	printf("The value of MSP[4] r12 is: %lx \n", pBaseStackFrame[4]);
+	printf("The value of MSP[5]  lr is: %lx \n", pBaseStackFrame[5]);
+	printf("The value of MSP[6]  PC is: %lx \n", pBaseStackFrame[6]);
+	printf("The value of MSP[6]  xPSR is: %lx \n", pBaseStackFrame[7]);
 
 	// flush(stdout);
 		while(1);

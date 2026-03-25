@@ -9,11 +9,13 @@
 extern uint32_t _etext;
 extern uint32_t _sdata;
 extern uint32_t _edata;
+extern uint32_t _la_data;
+
 extern uint32_t _sbss;
 extern uint32_t _ebss;
 
 int main( void );
-
+void __libc_init_array(void);  
 // system exceptions
 void Reset_Handler(void);
 void NMI_Handler(void)                  __attribute__ ((weak, alias("Default_Handler")));
@@ -241,22 +243,24 @@ void Default_Handler(void)
 void Reset_Handler(void)
 {
 // copy the .data and move it to SRAM	
-uint32_t size = &_edata - &_sdata; //
+uint32_t size = ( ((uint32_t)&_edata) - ((uint32_t)&_sdata) ); //
 uint8_t *pDst = (uint8_t *)&_sdata; /* This is the memory location of start of SRAM ( REMEMBER: THE (.) tracks only vma so _sdata contains the MEM_location of SRAM ) which is actually not populated with .data */
-uint8_t *pSrc = (uint8_t *)&_etext; // this is clearly in FLASH
+uint8_t *pSrc = (uint8_t *)&_la_data; // this is clearly in FLASH
 
 for (uint32_t i =0; i <size; i++) {
 	*pDst++ = *pSrc++;
 }
 // copy the .bss from flash to sram
-size = &_ebss - &_sbss;
+uint32_t bss_size = ((uint32_t)&_ebss - (uint32_t)&_sbss);
 pSrc = (uint8_t *)&_sbss;
 
-for (uint32_t i =0; i <size; i++) {
+for (uint32_t i =0; i < bss_size; i++) {
 	*pSrc++ = 0;
 }
 //initialize the std lib ( if we would i.e )
+__libc_init_array();
 
 // call the main() function
 main();
+
 }
