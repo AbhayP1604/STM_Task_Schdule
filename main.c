@@ -78,16 +78,16 @@ int main(void)
 void idle_handler(){
 
 	while(1){
-		printf("idle task is running! \n");
+		// printf("idle task is running! \n");
 	}
 }
 
 void task1_handler (void)
 {
 	while(1){
-		printf("This is task 1 handler \n");
 		led_on(LED_GREEN);
 		task_delay(1000);
+		
 		led_off(LED_GREEN);
 		task_delay(1000);
 	}
@@ -148,7 +148,7 @@ void init_systick_timer(uint32_t tick_hz){
 
 __attribute ((naked)) void schdule_stack(uint32_t pScheduler_stack_top){
 
-	printf("This is implemention of task scheduler \n");
+	// printf("This is implemention of task scheduler \n");
 	__asm volatile("MSR MSP,%0" : : "r"(pScheduler_stack_top)); // takes c variable and put it into a Reg -> MSP (pointing the msp to scheduler's top of stack)
 	__asm volatile ("BX LR"); // exit to main
 
