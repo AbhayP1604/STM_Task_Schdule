@@ -25,8 +25,8 @@ uint32_t *pSRVR = (uint32_t*)0xE000E014;
  //uint32_t task_handler[MAX_TASKS]; // to store address(s) of different task handlers;
 
 uint32_t *pSHCSR = (uint32_t*)0xE000ED24; // to enable all the system faults/exception
-uint8_t current_task = 1; // current task is 1 (0 is for idle_task)
-uint32_t g_tick_count = 0;
+volatile uint8_t current_task = 1; // current task is 1 (0 is for idle_task)
+volatile uint32_t g_tick_count = 0;
 
 //making a struct to organize all the attributes of user_task ( for task_state implementation )
 
@@ -39,7 +39,7 @@ uint32_t g_tick_count = 0;
 
 }TCB_t;
 
-TCB_t user_task[MAX_TASKS];
+volatile TCB_t user_task[MAX_TASKS];
 
 int main(void)
 {
@@ -82,56 +82,45 @@ void idle_handler(){
 	}
 }
 
-void task1_handler (void)
-{
+void task1_handler (void) {
 	while(1){
+		printf("Task 1 ran at tick: %lu \n", g_tick_count);
 		led_on(LED_GREEN);
-		task_delay(1000);
-		
-		led_off(LED_GREEN);
-		task_delay(1000);
+		task_delay(1600);
 	}
 }
-void task2_handler (void)
-{
+
+void task2_handler (void) {
 	while(1){
-		printf("This is task 2 handler \n");
+		printf("Task 2 ran at tick: %lu \n", g_tick_count);
 		led_on(LED_ORANGE);
 		task_delay(500);
-		led_off(LED_ORANGE);
-		task_delay(500);
 	}
 }
 
-void task3_handler (void)
-{
+void task3_handler (void) {
 	while(1){
-		printf("This is task 3 handler \n");
+		printf("Task 3 ran at tick: %lu \n", g_tick_count);
 		led_on(LED_RED);
 		task_delay(250);
-		led_off(LED_RED);
-		task_delay(250);
 	}
 }
 
-void task4_handler (void)
-{
+void task4_handler (void) {
 	while(1){
-		printf("This is task 4 handler \n");
+		printf("Task 4 ran at tick: %lu \n", g_tick_count);
 		led_on(LED_BLUE);
-		task_delay(125);
-		led_off(LED_BLUE);
 		task_delay(125);
 	}
 }
 void init_systick_timer(uint32_t tick_hz){
 
-	uint32_t *pSCSR = (uint32_t*)0xE000E010; //systick counter and status register
+	uint32_t *pSCSR = (uint32_t *)0xE000E010; //systick counter and status register
 
 	uint32_t count_value = (SYSTICK_TIMR_CLK / tick_hz)-1; // this is every 1ms systick_timer interrupt
 
 	//clear the bits
-	*pSRVR &= ~(0x00FFFFFF);
+	*pSRVR &= ~(0x00FFFFFF);// 24bit 2^24 max delay
 
 	//load the value into psvr
 	*pSRVR |= count_value;
@@ -207,7 +196,7 @@ void schedule(void){
 void task_delay(uint32_t task_tick){
 
 	// disable interrupt
-	INTERRUPT_DISABLE();
+	INTERRUPT_DISABLE(); //WARN: don't use r0 here cause it stores the task_tick changing it would cause delay errors
 
 
 	if(current_task) {
@@ -303,9 +292,9 @@ void unblock_task(void){
 
 		if(user_task[i].current_state != TASK_READY_STATE){
 
-			if(user_task[i].block_count == g_tick_count) {
-
-				user_task[i].current_state = TASK_READY_STATE;
+			if(g_tick_count >= user_task[i].block_count) {
+				// unblocking the current task
+				user_task[i].current_state = TASK_READY_STATE; 
 			}
 		}
 	}
