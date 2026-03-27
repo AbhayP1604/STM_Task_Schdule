@@ -6,7 +6,7 @@ This project completely bypasses the STM's Hardware Abstraction Layer (HAL). It 
 
 ## ⚙️ Architecture - bascially how it works!
 
-This project isn't just about blinking LEDs; it is an exploration of the physical silicon and the boot sequence of an embedded system. 
+This project guides through how a boot sequence within a uP takes place, what tasks/process takes place to flash a program onto a Microprocessor.
 
 * **Custom Startup File:** It manually defines the ARM Vector Table, implements the `Reset_Handler`, initializes the `.data` and `.bss` sections in SRAM, and safely branches to `main()`.
 * **Custom Linker Script (`.ld`):** The ARM core doesn't inherently know where ST's Flash or SRAM is physically located. This custom linker script manually maps the compiled object files (`*.o`), placing instructions (`.text`) and constants (`.rodata`) into Flash memory, while routing variables (`.data`, `.bss`) to SRAM. 
